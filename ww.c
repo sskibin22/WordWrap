@@ -143,10 +143,13 @@ int process_content(int fd_in, int fd_out, int col_width) {
             }
         }
     }
-    // attempt one final write
+    // attempt one final write    
     if ((write_result = write_word(fd_out, col_width, prev_newline_chars)) < 0) {
         return_value = write_result;
     }
+    // need to terminate output with a newline
+    char nl = '\n';
+    write(fd_out, &nl, 1);
     return return_value;
 }
 
@@ -177,8 +180,8 @@ int main(int argc, char **argv) {
                 perror("file open error");
                 exit(EXIT_FAILURE);
             }
-            //fd_out = STDOUT_FILENO;
-            fd_out = open("out.txt", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+            fd_out = STDOUT_FILENO;
+            //fd_out = open("out.txt", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
         }
     }    
     // process the input file's contents
