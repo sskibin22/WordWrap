@@ -13,17 +13,9 @@
 // word is a pointer to a resizable block of chars that builds the string of
 // non-whitespace chars that make up a word
 char *word;
-int word_char_ct, word_size;
+int word_char_ct = 0, word_size = WORDSIZE_INIT;
 // keep track of how many chars (including whitespace) have been written to a line so far
-int line_char_ct;
-
-void init_globals(void)
-{
-    word = malloc(sizeof(char) * WORDSIZE_INIT);
-    word_char_ct = 0;
-    word_size = WORDSIZE_INIT;
-    line_char_ct = 0;
-}
+int line_char_ct = 0;
 
 void add_char(char c)
 {
@@ -174,16 +166,16 @@ int process_content(int fd_in, int fd_out, int col_width) {
 int main(int argc, char **argv) {
     int fd_in, fd_out;
     int col_width;
-    init_globals();
+    word = malloc(sizeof(char) * WORDSIZE_INIT);
     // open input and output files
     if (argc < 2) {
-        printf("usage: ww col_width [filename | dirname]\n");
+        printf("usage: ./ww col_width [filename | dirname]\n");
         exit(EXIT_FAILURE);
     }
     else {
         col_width = atoi(argv[1]);
         if (col_width < 1) {
-            printf("usage: ww col_width [filename | dirname]\n");
+            printf("usage: ./ww col_width [filename | dirname]\n");
             printf("col_width must be a positive integer\n");
             exit(EXIT_FAILURE);
         }
