@@ -99,8 +99,7 @@ int write_word(int fd_out, int col_width, int newline_chars)
             }
             // give 'word_char_ct > col_width' priority when determining the return value
             if (word_char_ct > col_width) {
-                fprintf(stderr, "\nALERT: Input contains '%s' with width %d, but column width "
-                    "is only %d", word_str, word_char_ct, col_width);
+                fprintf(stderr, "\nALERT: Input contains '%s' with width %d, but column width is only %d\n", word_str, word_char_ct, col_width);
                 return_val = -1;
             }
             // reset word_char_ct, even if not all bytes were actually written
@@ -196,40 +195,80 @@ int main(int argc, char **argv) {
             }
             //if argv[2] is a directory type loop through directory and process each file
             if(S_ISDIR(argv_stat.st_mode)){
-                fd_out = STDOUT_FILENO; //temp
+                //declare loacal variables
                 int fileNum = 0;
+                const char *prefix = "wrap.";
+                char comp[6] = {'a', 'b', 'c', 'd', 'e'}; //not sure this is neccesary
+                int n;
+                char *file_name;
                 DIR *dp;
                 struct dirent *de;
                 struct stat file_stat;
                 dp = opendir(argv[2]);
-                chdir(argv[2]);
+                chdir(argv[2]);     //change directory to given argument directory
+
+                //loop through directory
                 while ((de = readdir(dp)) != NULL) {
+                    //bypass current directory indicator
                     if (!strcmp(de->d_name, "."))
                         continue;
+                    //bypass parent directory indicator
                     if (!strcmp(de->d_name, ".."))    
                         continue;
-                    //TODO: ignore any files that begin with a "." or "wrap."
-                    fileNum ++;
+                    //bypass file that starts with a "."
+                    if (de->d_name[0] == '.')    
+                        continue;
+                    //bypass a file that starts with "wrap."
+                    //FIX: currently if file is named "wrap.txt" it will get bypassed
+                    if(strlen(de->d_name) > 4){
+                        for (int c = 0; c < 5; c++){
+                            comp[c] = de->d_name[c];
+                        }
+                    }
+                    if (!strcmp(comp, prefix))
+                        continue;
+                    
+                    fileNum ++;     //valid file count in directory
+                    //make sure stat returns no errors
                     if (stat(de->d_name, &file_stat)){
                         printf("error: stat(%s): %s\n", de->d_name, strerror(errno));
                         continue;
                     }
-                    //TODO:  reformat each file in the directory and write the output to a new file with the prefix “wrap.”
+                    //bypass subdirectory
                     if(S_ISDIR(file_stat.st_mode)){
                         printf("%3d: Dir: %s\n", fileNum, de->d_name);
                     }
+                    //if current file is a regular file
                     else if(S_ISREG(file_stat.st_mode)){
+                        //print file number/type/name
                         printf("%3d: File: %s\n", fileNum, de->d_name);
+                        //open read in file as current file/ check for errors
                         if ((fd_in = open(de->d_name, O_RDONLY)) < 0) {
                             perror("file open error");
                             exit(EXIT_FAILURE);
                         }
-                        //fd_out = wrap."de->d_name";
+                        //get total number of characters for wrapped file name
+                        n = strlen(de->d_name) + strlen(prefix) + 1;
+                        //initialize arrayList to file_name pointer
+                        file_name = (char *)malloc(n * sizeof(char));
+                        //copy prefix to file_name then append current file name to file_name
+                        strcpy(file_name, prefix );             
+                        strcat(file_name, de->d_name);
+                        //create new file as "wrap.filename" with all user permissions
+                        //if file exists, overwrite it
+                        if((fd_out = open(file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRWXU)) < 0){
+                            perror("ERROR: file open error");
+                            exit(EXIT_FAILURE);
+                        }
+                        //process input file and output wrapped text to "wrap." file
                         process_content(fd_in, fd_out, col_width);
+                        //free memory allocated by malloc
+                        free(file_name);
                     }
+                    //if current file is anything other then a directory or regular file print error and continue
                     else{
                         perror("ERROR: ");
-                        exit(EXIT_FAILURE);
+                        continue;
                     }
                 }
                 closedir(dp);
@@ -244,17 +283,13 @@ int main(int argc, char **argv) {
                 fd_out = STDOUT_FILENO;
                 process_content(fd_in, fd_out, col_width);
             }
+            //if arg[2] is anything other then a directory or regular file print error and exit program
             else{
-                perror("ERROR: ");
+                perror("ERROR: Input file is not a valid file or directory");
                 exit(EXIT_FAILURE);
             }
         }
     }
-    // process the input file's contents
-    // TODO: wrap this in a loop if a directory is provided
-    // TODO: check return value of process_content for an error condition,
-    //       set exit status of main() accordingly
-    //process_content(fd_in, fd_out, col_width);
     // close files as needed
     if (fd_in > STDIN_FILENO) close(fd_in);
     if (fd_out > STDOUT_FILENO) close(fd_out);

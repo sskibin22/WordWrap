@@ -1,0 +1,4 @@
+hello world
+
+this is a test file to make 
+sure a file that begins with "." is bypassed
