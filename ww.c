@@ -112,7 +112,7 @@ int write_word(int fd_out, int col_width, int *line_char_ct, int newline_chars)
 
 /* process_content: read the contents of the input file to buf and write words
  * to the output file as whitespace and non-whitespace chars are encountered.
- * Parameters are the file descriptors of the input and output files,
+ * fd_in and fd_out are the file descriptors of the input and output files,
  * which are assumed to be open already.
  */
 int process_content(int fd_in, int fd_out, int col_width) {
