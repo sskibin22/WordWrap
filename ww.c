@@ -5,6 +5,8 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <dirent.h>
+#include <errno.h>
 
 #define DEBUG 0
 #define BUFSIZE 8
@@ -97,8 +99,8 @@ int write_word(int fd_out, int col_width, int newline_chars)
             }
             // give 'word_char_ct > col_width' priority when determining the return value
             if (word_char_ct > col_width) {
-                fprintf(stderr, "Input contains '%s' with width %d, but column width "
-                    "is only %d\n", word_str, word_char_ct, col_width);
+                fprintf(stderr, "\nALERT: Input contains '%s' with width %d, but column width "
+                    "is only %d", word_str, word_char_ct, col_width);
                 return_val = -1;
             }
             // reset word_char_ct, even if not all bytes were actually written
@@ -166,6 +168,7 @@ int process_content(int fd_in, int fd_out, int col_width) {
 int main(int argc, char **argv) {
     int fd_in, fd_out;
     int col_width;
+    struct stat argv_stat;
     word = malloc(sizeof(char) * WORDSIZE_INIT);
     // open input and output files
     if (argc < 2) {
@@ -183,22 +186,75 @@ int main(int argc, char **argv) {
         if (argc == 2) {
             fd_in = STDIN_FILENO;
             fd_out = STDOUT_FILENO;
+            process_content(fd_in, fd_out, col_width);
         }
         else {
-            // TODO: handle the case that argv[2] is a directory
-            if ((fd_in = open(argv[2], O_RDONLY)) < 0) {
-                perror("file open error");
+            //make sure argv[2] is a valid file or directory
+            if (stat(argv[2], &argv_stat)){
+                printf("error: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
             }
-            fd_out = STDOUT_FILENO;
-            //fd_out = open("out.txt", O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+            //if argv[2] is a directory type loop through directory and process each file
+            if(S_ISDIR(argv_stat.st_mode)){
+                fd_out = STDOUT_FILENO; //temp
+                int fileNum = 0;
+                DIR *dp;
+                struct dirent *de;
+                struct stat file_stat;
+                dp = opendir(argv[2]);
+                chdir(argv[2]);
+                while ((de = readdir(dp)) != NULL) {
+                    if (!strcmp(de->d_name, "."))
+                        continue;
+                    if (!strcmp(de->d_name, ".."))    
+                        continue;
+                    //TODO: ignore any files that begin with a "." or "wrap."
+                    fileNum ++;
+                    if (stat(de->d_name, &file_stat)){
+                        printf("error: stat(%s): %s\n", de->d_name, strerror(errno));
+                        continue;
+                    }
+                    //TODO:  reformat each file in the directory and write the output to a new file with the prefix “wrap.”
+                    if(S_ISDIR(file_stat.st_mode)){
+                        printf("%3d: Dir: %s\n", fileNum, de->d_name);
+                    }
+                    else if(S_ISREG(file_stat.st_mode)){
+                        printf("%3d: File: %s\n", fileNum, de->d_name);
+                        if ((fd_in = open(de->d_name, O_RDONLY)) < 0) {
+                            perror("file open error");
+                            exit(EXIT_FAILURE);
+                        }
+                        //fd_out = wrap."de->d_name";
+                        process_content(fd_in, fd_out, col_width);
+                    }
+                    else{
+                        perror("ERROR: ");
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                closedir(dp);
+            }
+            //argv[2] is a regular file type
+            else if(S_ISREG(argv_stat.st_mode)){
+                if ((fd_in = open(argv[2], O_RDONLY)) < 0) {
+                    perror("file open error");
+                    exit(EXIT_FAILURE);
+                }
+
+                fd_out = STDOUT_FILENO;
+                process_content(fd_in, fd_out, col_width);
+            }
+            else{
+                perror("ERROR: ");
+                exit(EXIT_FAILURE);
+            }
         }
     }
     // process the input file's contents
     // TODO: wrap this in a loop if a directory is provided
     // TODO: check return value of process_content for an error condition,
     //       set exit status of main() accordingly
-    process_content(fd_in, fd_out, col_width);
+    //process_content(fd_in, fd_out, col_width);
     // close files as needed
     if (fd_in > STDIN_FILENO) close(fd_in);
     if (fd_out > STDOUT_FILENO) close(fd_out);

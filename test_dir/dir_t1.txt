@@ -1,0 +1,8 @@
+            Testing directory argv with word wrap
+output. 
+this
+is just a test 
+    to see
+    if everythings works as it should
+
+this is a new paragraph.         this is the same parargraph1234!!!

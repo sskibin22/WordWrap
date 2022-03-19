@@ -1,0 +1,16 @@
+test file number 2
+in testing directory with word wrap
+each .txt file in this directory
+should
+have a duplicate
+file preceded by "
+wrap
+.
+"
+
+this is a new paragraph.
+
+
+
+
+this is another new paragraph with 5 new line characters in between.
