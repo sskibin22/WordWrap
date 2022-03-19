@@ -16,8 +16,6 @@
 // non-whitespace chars that make up a word
 char *word;
 int word_char_ct = 0, word_size = WORDSIZE_INIT;
-// keep track of how many chars (including whitespace) have been written to a line so far
-int line_char_ct = 0;
 
 void add_char(char c)
 {
@@ -42,7 +40,7 @@ void add_char(char c)
  * -1: newline started with word length > column width
  * -2: some other write error occurred
  */
-int write_word(int fd_out, int col_width, int newline_chars)
+int write_word(int fd_out, int col_width, int *line_char_ct, int newline_chars)
 {
     char nl[2] = {'\n', '\n'};
     char sp = ' ';
@@ -58,33 +56,33 @@ int write_word(int fd_out, int col_width, int newline_chars)
         // test against col_width to determine if the word is long enough to need
         // a new line given the chars already written to the current line;
         // add 1 char to account for prepended space
-        else if (line_char_ct + 1 + word_char_ct > col_width) {
+        else if (*line_char_ct + 1 + word_char_ct > col_width) {
             newlines = 1;
         }
-        // write newlines and reset line_char_ct if indicated
+        // write newlines and reset *line_char_ct if indicated
         if (newlines > 0) {
             if (write(fd_out, nl, newlines) == -1) {
                 perror("file write error");
                 return -2;
             }
-            line_char_ct = 0;
+            *line_char_ct = 0;
         } 
-        // write space and increment line_char_ct if indicated
-        if (line_char_ct > 0) {
+        // write space and increment *line_char_ct if indicated
+        if (*line_char_ct > 0) {
             if (write(fd_out, &sp, 1) == -1) {
                 perror("file write error");
                 return -2;
             }
-            line_char_ct++;
+            (*line_char_ct)++;
         }
-        // write word to output file, increment line_char_ct
+        // write word to output file, increment *line_char_ct
         bytes_written = write(fd_out, word, word_char_ct);
         if (bytes_written == -1) {
             perror("file write error");
             return -2;
         }
         else {
-            line_char_ct += bytes_written;
+            *line_char_ct += bytes_written;
             // get word as a string, for error messages
             char *word_str = malloc(sizeof(char) * (word_char_ct + 1));
             strncpy(word_str, word, word_char_ct);
@@ -121,6 +119,8 @@ int process_content(int fd_in, int fd_out, int col_width) {
     char buf[BUFSIZE];
     int bytes_read;
     int BOF = 1;
+    // keep track of how many chars (including whitespace) have been written to a line so far
+    int line_char_ct = 0;
     int newline_chars = 0;
     // need to remember how many newline chars precede the most recently completed word
     int prev_newline_chars = 0;
@@ -143,7 +143,8 @@ int process_content(int fd_in, int fd_out, int col_width) {
             else if (!isspace(buf[i])) {
                 BOF = 0;
                 if (attempt_write) {
-                    if ((write_result = write_word(fd_out, col_width, prev_newline_chars)) < 0) {
+                    if ((write_result = write_word(fd_out, col_width, &line_char_ct,
+                        prev_newline_chars)) < 0) {
                         return_value = write_result;
                     }
                     attempt_write = 0;
@@ -155,7 +156,8 @@ int process_content(int fd_in, int fd_out, int col_width) {
         }
     }
     // attempt one final write    
-    if ((write_result = write_word(fd_out, col_width, prev_newline_chars)) < 0) {
+    if ((write_result = write_word(fd_out, col_width, &line_char_ct,
+        prev_newline_chars)) < 0) {
         return_value = write_result;
     }
     // need to terminate output with a newline
