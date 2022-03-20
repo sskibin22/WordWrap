@@ -169,6 +169,7 @@ int process_content(int fd_in, int fd_out, int col_width) {
 int main(int argc, char **argv) {
     int fd_in, fd_out;
     int col_width;
+    int fail_check = EXIT_SUCCESS;
     struct stat argv_stat;
     word = malloc(sizeof(char) * WORDSIZE_INIT);
     // open input and output files
@@ -239,6 +240,7 @@ int main(int argc, char **argv) {
                     //make sure stat returns no errors
                     if (stat(de->d_name, &file_stat)){
                         printf("ERROR: stat(%s): %s\n", de->d_name, strerror(errno));
+                        fail_check = EXIT_FAILURE;
                         continue;
                     }
                     //bypass subdirectory
@@ -252,6 +254,7 @@ int main(int argc, char **argv) {
                         //open read in file as current file/ check for errors
                         if ((fd_in = open(de->d_name, O_RDONLY)) < 0) {
                             perror("ERROR: file open error");
+                            fail_check = EXIT_FAILURE;
                             continue;
                         }
                         //get total number of characters for wrapped file name
@@ -266,12 +269,14 @@ int main(int argc, char **argv) {
                         if((fd_out = open(file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRWXU)) < 0){
                             perror("ERROR: file open error");
                             close(fd_in);
+                            fail_check = EXIT_FAILURE;
                             continue;
                         }
                         //process input file and output wrapped text to "wrap." file
                         if(process_content(fd_in, fd_out, col_width) < 0){
-                            perror("ERROR: process_content() returned an error value");                     
-                            exit(EXIT_FAILURE);
+                            perror("ERROR: process_content() returned an error value");
+                            fail_check = EXIT_FAILURE;                     
+                            continue;
                         }
                         //free memory allocated by malloc
                         free(file_name);
@@ -281,6 +286,7 @@ int main(int argc, char **argv) {
                     //if current file is anything other then a directory or regular file print error and continue
                     else{
                         perror("ERROR: not a valid file or directory");
+                        fail_check = EXIT_FAILURE;
                         continue;
                     }
                 }
@@ -296,6 +302,8 @@ int main(int argc, char **argv) {
                 fd_out = STDOUT_FILENO;
                 if(process_content(fd_in, fd_out, col_width) < 0){
                     perror("ERROR: process_content() returned an error value");
+                    close(fd_in); 
+                    close(fd_out);
                     exit(EXIT_FAILURE);
                 }
                 close(fd_in); 
@@ -310,4 +318,5 @@ int main(int argc, char **argv) {
     }
     // free memory
     free(word);
+    return fail_check;
 }
