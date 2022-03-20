@@ -187,15 +187,18 @@ int main(int argc, char **argv) {
         if (argc == 2) {
             fd_in = STDIN_FILENO;
             fd_out = STDOUT_FILENO;
-            process_content(fd_in, fd_out, col_width);
+            if(process_content(fd_in, fd_out, col_width) <0){
+                perror("ERROR: process_content() returned an error value");
+                exit(EXIT_FAILURE);
+            }
             // close files as needed
-            if (fd_in > STDIN_FILENO) close(fd_in);
-            if (fd_out > STDOUT_FILENO) close(fd_out);
+            close(fd_in); 
+            close(fd_out);
         }
         else {
             //make sure argv[2] is a valid file or directory
             if (stat(argv[2], &argv_stat)){
-                printf("error: %s\n", strerror(errno));
+                printf("ERROR: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
             }
             //if argv[2] is a directory type loop through directory and process each file
@@ -235,7 +238,7 @@ int main(int argc, char **argv) {
                     fileNum ++;     //valid file count in directory
                     //make sure stat returns no errors
                     if (stat(de->d_name, &file_stat)){
-                        printf("error: stat(%s): %s\n", de->d_name, strerror(errno));
+                        printf("ERROR: stat(%s): %s\n", de->d_name, strerror(errno));
                         continue;
                     }
                     //bypass subdirectory
@@ -248,8 +251,8 @@ int main(int argc, char **argv) {
                         printf("%3d: File: %s\n", fileNum, de->d_name);
                         //open read in file as current file/ check for errors
                         if ((fd_in = open(de->d_name, O_RDONLY)) < 0) {
-                            perror("file open error");
-                            exit(EXIT_FAILURE);
+                            perror("ERROR: file open error");
+                            continue;
                         }
                         //get total number of characters for wrapped file name
                         n = strlen(de->d_name) + strlen(prefix) + 1;
@@ -262,10 +265,14 @@ int main(int argc, char **argv) {
                         //if file exists, overwrite it
                         if((fd_out = open(file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRWXU)) < 0){
                             perror("ERROR: file open error");
-                            exit(EXIT_FAILURE);
+                            close(fd_in);
+                            continue;
                         }
                         //process input file and output wrapped text to "wrap." file
-                        process_content(fd_in, fd_out, col_width);
+                        if(process_content(fd_in, fd_out, col_width) < 0){
+                            perror("ERROR: process_content() returned an error value");                     
+                            exit(EXIT_FAILURE);
+                        }
                         //free memory allocated by malloc
                         free(file_name);
                         close(fd_in);
@@ -273,7 +280,7 @@ int main(int argc, char **argv) {
                     }
                     //if current file is anything other then a directory or regular file print error and continue
                     else{
-                        perror("ERROR: ");
+                        perror("ERROR: not a valid file or directory");
                         continue;
                     }
                 }
@@ -287,13 +294,16 @@ int main(int argc, char **argv) {
                 }
 
                 fd_out = STDOUT_FILENO;
-                process_content(fd_in, fd_out, col_width);
-                if (fd_in > STDIN_FILENO) close(fd_in);
-                if (fd_out > STDOUT_FILENO) close(fd_out);
+                if(process_content(fd_in, fd_out, col_width) < 0){
+                    perror("ERROR: process_content() returned an error value");
+                    exit(EXIT_FAILURE);
+                }
+                close(fd_in); 
+                close(fd_out);
             }
             //if arg[2] is anything other then a directory or regular file print error and exit program
             else{
-                perror("ERROR: Input file is not a valid file or directory");
+                perror("ERROR: argv[2] is not a valid file or directory");
                 exit(EXIT_FAILURE);
             }
         }
