@@ -197,7 +197,7 @@ int main(int argc, char **argv) {
             }
             //if argv[2] is a directory type loop through directory and process each file
             if(S_ISDIR(argv_stat.st_mode)){
-                //declare loacal variables
+                //declare local variables
                 int fileNum = 0;
                 const char *prefix = "wrap.";
                 char comp[6] = {'a', 'b', 'c', 'd', 'e'}; //not sure this is neccesary
@@ -220,14 +220,13 @@ int main(int argc, char **argv) {
                     //bypass file that starts with a "."
                     if (de->d_name[0] == '.')    
                         continue;
-                    //bypass a file that starts with "wrap."
-                    //FIX: currently if file is named "wrap.txt" it will get bypassed
+                    //bypass a file that starts with "wrap." and is not named "wrap.txt"
                     if(strlen(de->d_name) > 4){
                         for (int c = 0; c < 5; c++){
                             comp[c] = de->d_name[c];
                         }
                     }
-                    if (!strcmp(comp, prefix))
+                    if (!strcmp(comp, prefix) && strcmp("wrap.txt", de->d_name))
                         continue;
                     
                     fileNum ++;     //valid file count in directory
