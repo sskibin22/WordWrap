@@ -175,13 +175,14 @@ int main(int argc, char **argv) {
     // open input and output files
     if (argc < 2) {
         printf("usage: ./ww col_width [filename | dirname]\n");
-        exit(EXIT_FAILURE);
+        fail_check = EXIT_FAILURE;
     }
     else {
         col_width = atoi(argv[1]);
         if (col_width < 1) {
             printf("usage: ./ww col_width [filename | dirname]\n");
             printf("col_width must be a positive integer\n");
+            free(word);
             exit(EXIT_FAILURE);
         }
         // if no filename is provided, use stdin for input
@@ -199,6 +200,7 @@ int main(int argc, char **argv) {
             //make sure argv[2] is a valid file or directory
             if (stat(argv[2], &argv_stat)){
                 printf("ERROR: %s\n", strerror(errno));
+                free(word);
                 exit(EXIT_FAILURE);
             }
             //if argv[2] is a directory type loop through directory and process each file
@@ -287,7 +289,7 @@ int main(int argc, char **argv) {
                     }
                     //if current file is anything other then a directory or regular file print error and continue
                     else{
-                        perror("ERROR: not a valid file or directory");
+                        printf("ERROR: not a valid file or directory");
                         fail_check = EXIT_FAILURE;
                         continue;
                     }
@@ -298,12 +300,14 @@ int main(int argc, char **argv) {
             else if(S_ISREG(argv_stat.st_mode)){
                 if ((fd_in = open(argv[2], O_RDONLY)) < 0) {
                     perror("file open error");
+                    free(word);
                     exit(EXIT_FAILURE);
                 }
                 fd_out = STDOUT_FILENO;
                 if(process_content(fd_in, fd_out, col_width) < 0){
                     close(fd_in); 
                     close(fd_out);
+                    free(word);
                     exit(EXIT_FAILURE);
                 }
                 close(fd_in); 
@@ -312,7 +316,7 @@ int main(int argc, char **argv) {
             //if arg[2] is anything other then a directory or regular file print error and exit program
             else{
                 perror("ERROR: argv[2] is not a valid file or directory");
-                exit(EXIT_FAILURE);
+                fail_check = EXIT_FAILURE;
             }
         }
     }
