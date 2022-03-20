@@ -188,6 +188,9 @@ int main(int argc, char **argv) {
             fd_in = STDIN_FILENO;
             fd_out = STDOUT_FILENO;
             process_content(fd_in, fd_out, col_width);
+            // close files as needed
+            if (fd_in > STDIN_FILENO) close(fd_in);
+            if (fd_out > STDOUT_FILENO) close(fd_out);
         }
         else {
             //make sure argv[2] is a valid file or directory
@@ -265,6 +268,8 @@ int main(int argc, char **argv) {
                         process_content(fd_in, fd_out, col_width);
                         //free memory allocated by malloc
                         free(file_name);
+                        close(fd_in);
+                        close(fd_out);
                     }
                     //if current file is anything other then a directory or regular file print error and continue
                     else{
@@ -283,6 +288,8 @@ int main(int argc, char **argv) {
 
                 fd_out = STDOUT_FILENO;
                 process_content(fd_in, fd_out, col_width);
+                if (fd_in > STDIN_FILENO) close(fd_in);
+                if (fd_out > STDOUT_FILENO) close(fd_out);
             }
             //if arg[2] is anything other then a directory or regular file print error and exit program
             else{
@@ -291,9 +298,6 @@ int main(int argc, char **argv) {
             }
         }
     }
-    // close files as needed
-    if (fd_in > STDIN_FILENO) close(fd_in);
-    if (fd_out > STDOUT_FILENO) close(fd_out);
     // free memory
     free(word);
 }
