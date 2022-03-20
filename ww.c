@@ -189,8 +189,7 @@ int main(int argc, char **argv) {
             fd_in = STDIN_FILENO;
             fd_out = STDOUT_FILENO;
             if(process_content(fd_in, fd_out, col_width) <0){
-                perror("ERROR: process_content() returned an error value");
-                exit(EXIT_FAILURE);
+                fail_check = EXIT_FAILURE;
             }
             // close files as needed
             close(fd_in); 
@@ -269,19 +268,22 @@ int main(int argc, char **argv) {
                         if((fd_out = open(file_name, O_WRONLY|O_CREAT|O_TRUNC, S_IRWXU)) < 0){
                             perror("ERROR: file open error");
                             close(fd_in);
+                            free(file_name);
                             fail_check = EXIT_FAILURE;
                             continue;
                         }
                         //process input file and output wrapped text to "wrap." file
                         if(process_content(fd_in, fd_out, col_width) < 0){
-                            perror("ERROR: process_content() returned an error value");
+                            close(fd_in);
+                            close(fd_out);
+                            free(file_name);
                             fail_check = EXIT_FAILURE;                     
                             continue;
                         }
-                        //free memory allocated by malloc
-                        free(file_name);
                         close(fd_in);
                         close(fd_out);
+                        //free memory allocated by malloc
+                        free(file_name);
                     }
                     //if current file is anything other then a directory or regular file print error and continue
                     else{
@@ -298,10 +300,8 @@ int main(int argc, char **argv) {
                     perror("file open error");
                     exit(EXIT_FAILURE);
                 }
-
                 fd_out = STDOUT_FILENO;
                 if(process_content(fd_in, fd_out, col_width) < 0){
-                    perror("ERROR: process_content() returned an error value");
                     close(fd_in); 
                     close(fd_out);
                     exit(EXIT_FAILURE);
