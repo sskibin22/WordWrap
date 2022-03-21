@@ -206,9 +206,8 @@ int main(int argc, char **argv) {
             //if argv[2] is a directory type loop through directory and process each file
             if(S_ISDIR(argv_stat.st_mode)){
                 //declare local variables
-                int fileNum = 0;
                 const char *prefix = "wrap.";
-                char comp[6] = {'a', 'b', 'c', 'd', 'e'}; //not sure this is neccesary
+                char comp[6] = {'a', 'b', 'c', 'd', 'e'}; //set default comp array to ensure it does not equal "wrap."
                 int n;
                 char *file_name;
                 DIR *dp;
@@ -237,21 +236,14 @@ int main(int argc, char **argv) {
                     if (!strcmp(comp, prefix) && strcmp("wrap.txt", de->d_name))
                         continue;
                     
-                    fileNum ++;     //valid file count in directory
                     //make sure stat returns no errors
                     if (stat(de->d_name, &file_stat)){
                         printf("ERROR: stat(%s): %s\n", de->d_name, strerror(errno));
                         fail_check = EXIT_FAILURE;
                         continue;
                     }
-                    //bypass subdirectory
-                    if(S_ISDIR(file_stat.st_mode)){
-                        printf("%3d: Dir: %s\n", fileNum, de->d_name);
-                    }
                     //if current file is a regular file
-                    else if(S_ISREG(file_stat.st_mode)){
-                        //print file number/type/name
-                        printf("%3d: File: %s\n", fileNum, de->d_name);
+                    if(S_ISREG(file_stat.st_mode)){
                         //open read in file as current file/ check for errors
                         if ((fd_in = open(de->d_name, O_RDONLY)) < 0) {
                             perror("ERROR: file open error");
@@ -282,18 +274,14 @@ int main(int argc, char **argv) {
                             fail_check = EXIT_FAILURE;                     
                             continue;
                         }
+                        //close open files
                         close(fd_in);
                         close(fd_out);
                         //free memory allocated by malloc
                         free(file_name);
                     }
-                    //if current file is anything other then a directory or regular file print error and continue
-                    else{
-                        printf("ERROR: not a valid file or directory\n");
-                        fail_check = EXIT_FAILURE;
-                        continue;
-                    }
                 }
+                //close directory
                 closedir(dp);
             }
             //argv[2] is a regular file type
