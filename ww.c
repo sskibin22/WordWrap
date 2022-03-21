@@ -289,7 +289,7 @@ int main(int argc, char **argv) {
                     }
                     //if current file is anything other then a directory or regular file print error and continue
                     else{
-                        printf("ERROR: not a valid file or directory");
+                        printf("ERROR: not a valid file or directory\n");
                         fail_check = EXIT_FAILURE;
                         continue;
                     }
@@ -315,7 +315,7 @@ int main(int argc, char **argv) {
             }
             //if arg[2] is anything other then a directory or regular file print error and exit program
             else{
-                perror("ERROR: argv[2] is not a valid file or directory");
+                printf("ERROR: argv[2] is not a valid file or directory\n");
                 fail_check = EXIT_FAILURE;
             }
         }
