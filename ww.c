@@ -28,6 +28,25 @@ void add_char(char c)
     word_char_ct++;
 }
 
+/* Inform user of write() errors and writing fewer than bytes than requested
+ * Return -1 if either of these situations is inferred from the arguments,
+ * 0 otherwise
+ */
+int inform_write_err(int requested, int written)
+{    
+    int ret_value = 0;
+    if (written == -1) {
+        perror("ERROR: file write error");
+        ret_value = -1;
+    }
+    else if (written < requested) {
+        fprintf(stderr, "ERROR: tried to write %d bytes, only wrote %d\n",
+            requested, written);
+        ret_value = -1;
+    }
+    return ret_value;
+}
+
 /*  write_word: write the chars referenced by word to the file with file descriptor fd_out.
  *  Prepend newlines or space to the word based on whether
  *  a) the word is long enough to need a new line given the chars already written
@@ -38,7 +57,7 @@ void add_char(char c)
  *  1: newline started with no errors
  *  0: newline not started, no errors
  * -1: newline started with word length > column width
- * -2: some other write error occurred
+ * -2: error occurred upon call to write() or fewer bytes were written than requested 
  */
 int write_word(int fd_out, int col_width, int *line_char_ct, int newline_chars)
 {
@@ -61,24 +80,26 @@ int write_word(int fd_out, int col_width, int *line_char_ct, int newline_chars)
         }
         // write newlines and reset *line_char_ct if indicated
         if (newlines > 0) {
-            if (write(fd_out, nl, newlines) == -1) {
-                perror("file write error");
+            bytes_written = write(fd_out, nl, newlines);
+            if (inform_write_err(newlines, bytes_written)) {
+                word_char_ct = 0;                
                 return -2;
             }
             *line_char_ct = 0;
         } 
         // write space and increment *line_char_ct if indicated
         if (*line_char_ct > 0) {
-            if (write(fd_out, &sp, 1) == -1) {
-                perror("file write error");
+            bytes_written = write(fd_out, &sp, 1);
+            if (inform_write_err(1, bytes_written)) {
+                word_char_ct = 0;
                 return -2;
             }
             (*line_char_ct)++;
         }
         // write word to output file, increment *line_char_ct
         bytes_written = write(fd_out, word, word_char_ct);
-        if (bytes_written == -1) {
-            perror("file write error");
+        if (inform_write_err(word_char_ct, bytes_written)) {  
+            word_char_ct = 0;          
             return -2;
         }
         else {
@@ -87,20 +108,13 @@ int write_word(int fd_out, int col_width, int *line_char_ct, int newline_chars)
             char *word_str = malloc(sizeof(char) * (word_char_ct + 1));
             strncpy(word_str, word, word_char_ct);
             word_str[word_char_ct] = '\0';
-            // notify user of error conditions
-            // return newlines unless an error occurs
+            // return newlines unless word is longer than col_width
             int return_val = newlines;
-            if (bytes_written < word_char_ct) {
-                fprintf(stderr, "'%s' has length %d, only wrote %d bytes\n", 
-                    word_str, word_char_ct, bytes_written);
-                return_val = -2;
-            }
-            // give 'word_char_ct > col_width' priority when determining the return value
             if (word_char_ct > col_width) {
-                fprintf(stderr, "\nALERT: Input contains '%s' with width %d, but column width is only %d\n", word_str, word_char_ct, col_width);
+                fprintf(stderr, "\nALERT: Input contains '%s' with width %d, "
+                    "but column width is only %d\n", word_str, word_char_ct, col_width);
                 return_val = -1;
             }
-            // reset word_char_ct, even if not all bytes were actually written
             word_char_ct = 0;
             free(word_str);
             return return_val;
@@ -114,6 +128,9 @@ int write_word(int fd_out, int col_width, int *line_char_ct, int newline_chars)
  * to the output file as whitespace and non-whitespace chars are encountered.
  * fd_in and fd_out are the file descriptors of the input and output files,
  * which are assumed to be open already.
+ * Returns 1 if all file operations completed successfully. If write_word returns
+ * an error value (i.e. an int < 0), process_content returns that value. If a
+ * read error occurs, process_content returns -2.
  */
 int process_content(int fd_in, int fd_out, int col_width) {
     char buf[BUFSIZE];
@@ -127,10 +144,9 @@ int process_content(int fd_in, int fd_out, int col_width) {
     int attempt_write = 0;
     int write_result = 0;
     int return_value = 1;
-    int i;
 
     while ((bytes_read = read(fd_in, buf, BUFSIZE)) > 0) {
-        for (i = 0; i < bytes_read; i++) {
+        for (int i = 0; i < bytes_read; i++) {
             // ignore any whitespace at the beginning of the input file
             if (isspace(buf[i]) && !BOF) {
                 // write the contents of word to the output file as soon as the next
@@ -143,8 +159,15 @@ int process_content(int fd_in, int fd_out, int col_width) {
             else if (!isspace(buf[i])) {
                 BOF = 0;
                 if (attempt_write) {
-                    if ((write_result = write_word(fd_out, col_width, &line_char_ct,
-                        prev_newline_chars)) < 0) {
+                    write_result = write_word(fd_out, col_width, &line_char_ct,
+                        prev_newline_chars);
+                    // stop process_content if write_word returns an error value of -2
+                    if (write_result == -2) {
+                        return -2;
+                    }
+                    // set return_value if write_word returns an error value of -1,
+                    // but continue process_content
+                    else if (write_result == -1) {
                         return_value = write_result;
                     }
                     attempt_write = 0;
@@ -155,14 +178,20 @@ int process_content(int fd_in, int fd_out, int col_width) {
             }
         }
     }
+    // inform of read errors
+    if (bytes_read < 0) {
+        perror("ERROR: file read error");
+    }
     // attempt one final write    
     if ((write_result = write_word(fd_out, col_width, &line_char_ct,
         prev_newline_chars)) < 0) {
         return_value = write_result;
     }
-    // need to terminate output with a newline
-    char nl = '\n';
-    write(fd_out, &nl, 1);
+    // need to terminate output with a newline unless the input file had no words
+    if (!BOF) {
+        char nl = '\n';
+        write(fd_out, &nl, 1);
+    }    
     return return_value;
 }
 
@@ -174,14 +203,14 @@ int main(int argc, char **argv) {
     word = malloc(sizeof(char) * WORDSIZE_INIT);
     // open input and output files
     if (argc < 2) {
-        printf("usage: ./ww col_width [filename | dirname]\n");
+        fprintf(stderr, "usage: ./ww col_width [filename | dirname]\n");
         fail_check = EXIT_FAILURE;
     }
     else {
         col_width = atoi(argv[1]);
         if (col_width < 1) {
-            printf("usage: ./ww col_width [filename | dirname]\n");
-            printf("col_width must be a positive integer\n");
+            fprintf(stderr, "usage: ./ww col_width [filename | dirname]\n");
+            fprintf(stderr, "col_width must be a positive integer\n");
             free(word);
             exit(EXIT_FAILURE);
         }
@@ -199,7 +228,7 @@ int main(int argc, char **argv) {
         else {
             //make sure argv[2] is a valid file or directory
             if (stat(argv[2], &argv_stat)){
-                printf("ERROR: %s\n", strerror(errno));
+                fprintf(stderr, "ERROR: %s\n", strerror(errno));
                 free(word);
                 exit(EXIT_FAILURE);
             }
@@ -238,7 +267,7 @@ int main(int argc, char **argv) {
                     
                     //make sure stat returns no errors
                     if (stat(de->d_name, &file_stat)){
-                        printf("ERROR: stat(%s): %s\n", de->d_name, strerror(errno));
+                        fprintf(stderr, "ERROR: stat(%s): %s\n", de->d_name, strerror(errno));
                         fail_check = EXIT_FAILURE;
                         continue;
                     }
@@ -287,7 +316,7 @@ int main(int argc, char **argv) {
             //argv[2] is a regular file type
             else if(S_ISREG(argv_stat.st_mode)){
                 if ((fd_in = open(argv[2], O_RDONLY)) < 0) {
-                    perror("file open error");
+                    perror("ERROR: file open error");
                     free(word);
                     exit(EXIT_FAILURE);
                 }
@@ -303,7 +332,7 @@ int main(int argc, char **argv) {
             }
             //if arg[2] is anything other then a directory or regular file print error and exit program
             else{
-                printf("ERROR: argv[2] is not a valid file or directory\n");
+                fprintf(stderr, "ERROR: argv[2] is not a valid file or directory\n");
                 fail_check = EXIT_FAILURE;
             }
         }
