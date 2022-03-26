@@ -151,42 +151,37 @@ int main(int argc, char **argv) {
     if (argc < 3) {
         fprintf(stderr, "usage: ./test_ww col_width output_file [input_file]\n");
         fail_check = EXIT_FAILURE;
-        goto cleanup;
     }
-    col_width = atoi(argv[1]);
-    if (col_width < 1) {
-        fprintf(stderr, "usage: ./test_ww col_width output_file [input_file]\n");
-        fprintf(stderr, "col_width must be a positive integer\n");
-        fail_check = EXIT_FAILURE;
-        goto cleanup;
-    }
-    // open files    
-    if ((fd_out = open(argv[2], O_RDONLY)) < 0) {
-        perror("Output file open error");
-        fail_check = EXIT_FAILURE;
-        goto cleanup;
-    }
-    if (argc > 3 && (fd_in = open(argv[3], O_RDONLY)) < 0) {
-        perror("Input file open error");
-        fail_check = EXIT_FAILURE;
-        goto cleanup;
-    }
-    // read all non-whitespace chars from input file
-    if (argc > 3 && read_non_ws(fd_in) < 0) {
-        fail_check = EXIT_FAILURE;
-    }
-    // read all chars from output file
-    if (process_output(fd_out, col_width) < 0) {
-        fail_check = EXIT_FAILURE;
-    }
-    // test for identical non-whitespace chars
-    if (argc > 3 && (nonws_in.ct != nonws_out.ct ||
-        (nonws_in.ct == nonws_out.ct && strncmp(nonws_in.chars, nonws_out.chars, nonws_in.ct)))) {        
-        fprintf(stderr, "Input and output files do not contain the same non-whitespace chars\n");
-        fail_check = EXIT_FAILURE;
-    }
+    else {
+        col_width = atoi(argv[1]);
+        if (col_width < 1) {
+            fprintf(stderr, "usage: ./test_ww col_width output_file [input_file]\n");
+            fprintf(stderr, "col_width must be a positive integer\n");
+            fail_check = EXIT_FAILURE;
+        }
+        // open files
+        else if ((fd_out = open(argv[2], O_RDONLY)) < 0) {
+            perror("Output file open error");
+            fail_check = EXIT_FAILURE;
+        }
+        else if (argc > 3 && (fd_in = open(argv[3], O_RDONLY)) < 0) {
+            perror("Input file open error");
+            fail_check = EXIT_FAILURE;
+        }
+        else {
+            // read all non-whitespace chars from input file
+            if (argc > 3 && read_non_ws(fd_in) < 0) fail_check = EXIT_FAILURE;
+            // read all chars from output file
+            if (process_output(fd_out, col_width) < 0) fail_check = EXIT_FAILURE;
+            // test for identical non-whitespace chars
+            if (argc > 3 && (nonws_in.ct != nonws_out.ct ||
+                (nonws_in.ct == nonws_out.ct && strncmp(nonws_in.chars, nonws_out.chars, nonws_in.ct)))) {        
+                fprintf(stderr, "Input and output files do not contain the same non-whitespace chars\n");
+                fail_check = EXIT_FAILURE;
+            }
+        }
+    }    
     // close files
-    cleanup:
     if (fd_in >= 0) close(fd_in);
     if (fd_out >= 0) close(fd_out);
     // free memory
