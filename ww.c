@@ -262,7 +262,7 @@ int main(int argc, char **argv) {
                             comp[c] = de->d_name[c];
                         }
                     }
-                    if (!strcmp(comp, prefix) && strcmp("wrap.txt", de->d_name))
+                    if (!strcmp(comp, prefix))
                         continue;
                     
                     //make sure stat returns no errors

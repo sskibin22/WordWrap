@@ -72,13 +72,10 @@ Test Plan:
         -> Run ./ww on test_dir to make sure ".txt" is bypassed
     ->Output files are named ‘wrap.inputfilename’
         ->Any file that begins with "wrap." is bypassed as a new file to wrap.  If a regular file, "test.txt" ,is wrapped within a directory the output file will be "wrap.test.txt".  If ./ww is run on the same directory again "wrap.test.txt" will be overwritten with the new wrap column width.  No new "wrap." file will be created.
-            ->DESIGN CHOICE: If a regular file is orginaly named "wrap.txt", it will not be bypassed and it's output file will be "wrap.wrap.txt".
-            ->TEST: create file called "wrap.txt" in test_dir
-            ->Run ./ww on test_dir 
-            ->Make sure "wrap.txt" is not bypassed and output file, "wrap.wrap.txt" is created
         -> Run ./ww on test_dir
         -> Make sure all valid regular files remain unchanged and all wrapped versions of the regular files are processed correctly and prefixed with "wrap."
         -> To test if output "wrap." files are proccessed correctly run ./test_ww on all output and input files in test_dir
+        ->Run ./ww on test_dir multiple times with different column numbers and make sure all regular files that begin with "wrap." are overwritten and wrapped to new column number.
 
 8) If no file name is present and only a column width is given ./ww will read from standard input and write to standard output as a default.
     ->run ./ww num_col [no input file/directory] 
