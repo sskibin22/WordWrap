@@ -53,26 +53,26 @@ The test program checks for the following errors in the output file:
 
 5) Make sure ww works with different read buffer lengths, including BUFSIZE == 1. Do this for a few choices of BUFSIZE (1, 3, and 8), for every file in the set of test files.
 
-6) Make sure that error conditions are generating the expected program behavior (continue vs. immediately terminate), messages, and main() return values. Test the following scenarios:
+6) Make sure that error conditions are generating the expected program behavior (continue vs. immediately terminate), messages, and exit status. Test the following scenarios:
     ->Input file does not exist
     ->Input file type is something other than a regular file or directory
     ->Input file contains a word with more chars than col_width
-    ->Input file cannot be opened because user read permission is turned off
-    ->Input file cannot be read because user read permission is turned off
-    ->Output file cannot be written to because user write permission is turned off
+    ->Error when opening the input file because user read permission is turned off
+    ->Error when reading the input file because it was unexpectedly closed
+    ->Error when writing to the output file because it was unexpectedly closed
 
 7) Make sure directory processing works as intended: 
     ->Any file that is not a regular file is bypassed within the working directory (includes: subdirectories)
         ->Create a directory called "test_dir" to contain regular files and subdirectories.
         ->Run ./ww on test_dir then check the directory to make sure the subdirectory was bypassed and only regular files within test_dir were proccessed.
     ->Any file that starts with a "." (EX: .txt) is bypassed within the working directory
-        -> create a text file called ".txt" within test_dir
-        -> Run ./ww on test_dir to make sure ".txt" is bypassed
+        ->Create a text file called ".txt" within test_dir
+        ->Run ./ww on test_dir to make sure ".txt" is bypassed
     ->Output files are named ‘wrap.inputfilename’
         ->Any file that begins with "wrap." is bypassed as a new file to wrap.  If a regular file, "test.txt" ,is wrapped within a directory the output file will be "wrap.test.txt".  If ./ww is run on the same directory again "wrap.test.txt" will be overwritten with the new wrap column width.  No new "wrap." file will be created.
-        -> Run ./ww on test_dir
-        -> Make sure all valid regular files remain unchanged and all wrapped versions of the regular files are processed correctly and prefixed with "wrap."
-        -> To test if output "wrap." files are proccessed correctly run ./test_ww on all output and input files in test_dir
+        ->Run ./ww on test_dir
+        ->Make sure all valid regular files remain unchanged and all wrapped versions of the regular files are processed correctly and prefixed with "wrap."
+        ->To test if output "wrap." files are proccessed correctly run ./test_ww on all output and input files in test_dir
         ->Run ./ww on test_dir multiple times with different column numbers and make sure all regular files that begin with "wrap." are overwritten and wrapped to new column number.
 
 8) If no file name is present and only a column width is given ./ww will read from standard input and write to standard output as a default.
