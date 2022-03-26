@@ -134,7 +134,7 @@ int write_word(int fd_out, int col_width, int *line_char_ct, int newline_chars)
  */
 int process_content(int fd_in, int fd_out, int col_width) {
     char buf[BUFSIZE];
-    int bytes_read;
+    int bytes_read = 0;
     int BOF = 1;
     // keep track of how many chars (including whitespace) have been written to a line so far
     int line_char_ct = 0;
@@ -181,6 +181,7 @@ int process_content(int fd_in, int fd_out, int col_width) {
     // inform of read errors
     if (bytes_read < 0) {
         perror("ERROR: file read error");
+        return_value = -2;
     }
     // attempt one final write    
     if ((write_result = write_word(fd_out, col_width, &line_char_ct,
