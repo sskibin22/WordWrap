@@ -26,30 +26,32 @@ Execution:
 Test Plan:
 ----------
 
-1) Create set of test files:
-    ->Empty file
-    ->File that contains only whitespace
-    ->A few files that test all normalization tasks: 
+1) Create a set of test files. For each file, run ww with various column widths (e.g. 20, 30):
+    ->Degenerate cases
+        ->Empty file
+        ->File that contains only whitespace
+    ->Files that test all normalization tasks: 
         ->base case modeled on the example at the bottom of p. 3 of the assignment
+        ->file with non-whitespace and space chars (' ') but no newlines
         ->whitespace sequence at the beginning of the file
         ->long whitespace sequences (including three or more newlines) in the middle and at the end of the file
         ->lines with more chars than col_width
         ->at least one word with more chars than col_width
-        ->file consisting of one non-whitespace char
+        ->file consisting of just one non-whitespace char
 
-2) Write a test program to verify that the output file conforms to the spec. Run this program for every file in the set of test files.
+2) Write a test program to verify that the output files conform to the spec. Run this program for every file in the set of test files.
 The test program checks for the following errors in the output file:
     ->whitespace at beginning of file
-    ->multiple consecutive space chars (' ')
+    ->multiple consecutive space chars
     ->more than 2 consecutive newline chars
     ->any whitespace chars other than space and newline
     ->line(s) wrapped too soon, based on specified col_width
     ->line(s) overran specified col_width 
     ->(optional) input and output files do not contain the same non-whitespace chars in identical order
 
-3) Run every file in the set of test files with valgrind to make sure all memory allocated from the heap is freed.
+3) Run files in the set of test files with valgrind to make sure all memory allocated from the heap is freed.
 
-4) Make sure that calling ww with col_width on some file x, which was itself output by ww with col_width, outputs a file that is byte-identical to x. Use shell commands like those at the bottom of p. 2 of the assignment to verify. Perform this test for every file in the set of test files.
+4) Make sure that calling ww with col_width on some file x, which was itself output by ww with col_width, outputs a file that is byte-identical to x. Use shell commands like those at the bottom of p. 2 of the assignment to verify. Perform this test for files in the set of test files.
 
 5) Make sure ww works with different read buffer lengths, including BUFSIZE == 1. Do this for a few choices of BUFSIZE (1, 3, and 8), for every file in the set of test files.
 
