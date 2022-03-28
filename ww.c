@@ -244,8 +244,12 @@ int main(int argc, char **argv) {
                 struct dirent *de;
                 struct stat file_stat;
                 dp = opendir(argv[2]);
-                chdir(argv[2]);     //change directory to given argument directory
-
+                //if chdir() does not return an error change working directory to given directory, else exit program
+                if((chdir(argv[2])) == -1){
+                    fprintf(stderr, "ERROR: %s\n", strerror(errno));
+                    free(word);
+                    exit(EXIT_FAILURE);
+                }    
                 //loop through directory
                 while ((de = readdir(dp)) != NULL) {
                     //bypass current directory indicator
